@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Startup Mentor</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background: #f7f7fb;
+    color: #222;
+  }
+  h1 { color: #4f46e5; margin-bottom: 4px; }
+  .subtitle { color: #555; margin-top: 0; }
+
+  form.main-form {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  label { display: block; margin-top: 12px; font-weight: bold; }
+  input, textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  button {
+    margin-top: 16px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  button:hover { background: #4338ca; }
+  button.secondary {
+    background: white;
+    color: #4f46e5;
+    border: 1px solid #4f46e5;
+  }
+  button.secondary:hover { background: #eef2ff; }
+
+  .error { color: #dc2626; margin-top: 10px; font-weight: bold; }
+
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .action-bar form { display: inline; }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 5px solid #4f46e5;
+  }
+  .card h3 {
+    margin-top: 0;
+    color: #4f46e5;
+    font-size: 16px;
+  }
+  .card .body { white-space: pre-wrap; line-height: 1.5; font-size: 14px; }
+
+  .card[data-title="SWOT Analysis"] { border-left-color: #16a34a; }
+  .card[data-title="SWOT Analysis"] h3 { color: #16a34a; }
+  .card[data-title="Potential Risks and Solutions"] { border-left-color: #dc2626; }
+  .card[data-title="Potential Risks and Solutions"] h3 { color: #dc2626; }
+  .card[data-title="Estimated Startup Costs"] { border-left-color: #d97706; }
+  .card[data-title="Estimated Startup Costs"] h3 { color: #d97706; }
+  .card[data-title="Revenue and Profit Forecast"] { border-left-color: #0891b2; }
+  .card[data-title="Revenue and Profit Forecast"] h3 { color: #0891b2; }
+
+  .names-box, .calc-box {
+    background: white;
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-top: 20px;
+  }
+  .names-box h2, .calc-box h2 { color: #4f46e5; font-size: 18px; margin-top: 0; }
+  .name-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .name-item:last-child { border-bottom: none; }
+  .name-item .n { font-weight: bold; }
+  .name-item .s { color: #555; font-style: italic; }
+
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .calc-results {
+    margin-top: 16px;
+    padding: 14px;
+    background: #eef2ff;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+  <h1>🚀 AI Startup Mentor</h1>
+  <p class="subtitle">Enter your business idea and get an instant startup plan.</p>
+
+  <form class="main-form" action="/generate" method="POST">
+    <label for="idea">Business Idea</label>
+    <textarea id="idea" name="idea" rows="3" placeholder="e.g. I want to start a coffee shop">{{ idea or '' }}</textarea>
+
+    <label for="location">Location</label>
+    <input id="location" name="location" placeholder="e.g. Auckland" value="{{ location or '' }}">
+
+    <label for="budget">Budget</label>
+    <input id="budget" name="budget" placeholder="e.g. NZ$40,000" value="{{ budget or '' }}">
+
+    <button type="submit">Generate Plan</button>
+  </form>
+
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+
+  {% if sections %}
+    <div class="action-bar">
+      <form action="/generate-names" method="POST">
+        <input type="hidden" name="idea" value="{{ idea }}">
+        <input type="hidden" name="location" value="{{ location }}">
+        <input type="hidden" name="budget" value="{{ budget }}">
+        <input type="hidden" name="raw_plan" value="{{ raw_plan }}">
+        <button type="submit" class="secondary">✨ Generate Business Names</button>
+      </form>
+
+      <form action="/export-pdf" method="POST">
+        <input type="hidden" name="idea" value="{{ idea }}">
+        <input type="hidden" name="raw_plan" value="{{ raw_plan }}">
+        <button type="submit" class="secondary">📄 Export as PDF</button>
+      </form>
+    </div>
+
+    <div class="section-grid">
+      {% for title, body in sections.items() %}
+        <div class="card" data-title="{{ title }}">
+          <h3>{{ title }}</h3>
+          <div class="body">{{ body }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if names %}
+    <div class="names-box">
+      <h2>✨ Suggested Business Names</h2>
+      {% for item in names %}
+        <div class="name-item">
+          <div class="n">{{ item.name }}</div>
+          <div class="s">{{ item.slogan }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Financial calculator: pure JS, no AI needed, always works -->
+  <div class="calc-box">
+    <h2>💰 Financial Calculator</h2>
+    <p style="color:#555; font-size: 14px;">Estimate your break-even point and profit.</p>
+    <div class="calc-grid">
+      <div>
+        <label for="fixedCosts">Fixed Costs (per month)</label>
+        <input type="number" id="fixedCosts" placeholder="e.g. 2000">
+      </div>
+      <div>
+        <label for="price">Selling Price (per unit)</label>
+        <input type="number" id="price" placeholder="e.g. 5">
+      </div>
+      <div>
+        <label for="variableCost">Variable Cost (per unit)</label>
+        <input type="number" id="variableCost" placeholder="e.g. 2">
+      </div>
+      <div>
+        <label for="expectedVolume">Expected Sales (units/month)</label>
+        <input type="number" id="expectedVolume" placeholder="e.g. 800">
+      </div>
+    </div>
+    <button type="button" onclick="calculateFinancials()">Calculate</button>
+    <div id="calcResults" class="calc-results" style="display:none;"></div>
+  </div>
+
+  <script>
+    function calculateFinancials() {
+      const fixedCosts = parseFloat(document.getElementById('fixedCosts').value);
+      const price = parseFloat(document.getElementById('price').value);
+      const variableCost = parseFloat(document.getElementById('variableCost').value);
+      const expectedVolume = parseFloat(document.getElementById('expectedVolume').value) || 0;
+
+      const resultsBox = document.getElementById('calcResults');
+      resultsBox.style.display = 'block';
+
+      if (isNaN(fixedCosts) || isNaN(price) || isNaN(variableCost)) {
+        resultsBox.innerHTML = '<span style="color:#dc2626;">Please fill in Fixed Costs, Selling Price, and Variable Cost.</span>';
+        return;
+      }
+      const contributionMargin = price - variableCost;
+      if (contributionMargin <= 0) {
+        resultsBox.innerHTML = '<span style="color:#dc2626;">Selling price must be higher than variable cost per unit.</span>';
+        return;
+      }
+
+      const breakEvenUnits = fixedCosts / contributionMargin;
+      const breakEvenRevenue = breakEvenUnits * price;
+      const monthlyProfit = (contributionMargin * expectedVolume) - fixedCosts;
+
+      resultsBox.innerHTML = `
+        <div><strong>Break-even point:</strong> ${breakEvenUnits.toFixed(1)} units/month</div>
+        <div><strong>Break-even revenue:</strong> ${breakEvenRevenue.toFixed(2)}</div>
+        <div><strong>Contribution margin per unit:</strong> ${contributionMargin.toFixed(2)}</div>
+        <div><strong>Estimated monthly profit</strong> (at ${expectedVolume} units sold): 
+          <span style="color:${monthlyProfit >= 0 ? '#16a34a' : '#dc2626'};">
+            ${monthlyProfit.toFixed(2)}
+          </span>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
