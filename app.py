@@ -105,6 +105,19 @@ def parse_names(text: str):
     return results
 
 
+def wrap_long_words(text: str, max_word_len: int = 40) -> str:
+    """Breaks up any 'word' with no spaces that's too long for fpdf to render
+    on one line (e.g. long URLs, markdown separators, joined tokens)."""
+    words = text.split(" ")
+    fixed_words = []
+    for word in words:
+        while len(word) > max_word_len:
+            fixed_words.append(word[:max_word_len])
+            word = word[max_word_len:]
+        fixed_words.append(word)
+    return " ".join(fixed_words)
+
+
 # ---------- Routes ----------
 
 @app.route("/", methods=["GET"])
@@ -181,12 +194,20 @@ def export_pdf():
     pdf.set_font("Helvetica", "B", 16)
     pdf.multi_cell(0, 10, "AI Startup Mentor - Business Plan")
     pdf.set_font("Helvetica", "I", 11)
-    pdf.multi_cell(0, 8, f"Idea: {idea}")
+
+    safe_idea = idea.encode("latin-1", "replace").decode("latin-1")
+    safe_idea = wrap_long_words(safe_idea)
+    pdf.multi_cell(0, 8, f"Idea: {safe_idea}")
     pdf.ln(4)
 
     pdf.set_font("Helvetica", size=11)
     for line in raw_plan.split("\n"):
         clean_line = line.encode("latin-1", "replace").decode("latin-1")
+        clean_line = clean_line.replace("**", "")  # strip markdown bold markers
+        clean_line = wrap_long_words(clean_line)    # prevent "not enough horizontal space" errors
+        if not clean_line.strip():
+            pdf.ln(2)
+            continue
         if clean_line.strip().startswith("##"):
             pdf.set_font("Helvetica", "B", 13)
             pdf.ln(3)
