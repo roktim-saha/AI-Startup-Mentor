@@ -1,10 +1,12 @@
 """
-AI Startup Mentor - v2 (UI improved + extra features)
+AI Startup Mentor - v3 (UI improved + extra features)
 --------------------------------------------------------
-New in this version:
+Features:
 - Plan is parsed into sections so the UI can show them as cards
 - /generate-names route: AI-generated business name + slogan ideas
-- /export-pdf route: download the generated plan as a PDF
+- /generate-inventory route: AI-suggested inventory budget split
+- /chat route: AI mentor chat with conversation memory
+- Pricing & Margin Calculator and Cash Flow Planner (client-side JS)
 
 Setup:
 1. pip install -r requirements.txt
@@ -16,11 +18,9 @@ Setup:
 import os
 import re
 import json
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request
 from dotenv import load_dotenv
 import google.generativeai as genai
-from fpdf import FPDF
-import io
 
 # --- Load API key ---
 load_dotenv()
@@ -104,19 +104,6 @@ def parse_names(text: str):
         if match:
             results.append({"name": match.group(1).strip(), "slogan": match.group(2).strip()})
     return results
-
-
-def wrap_long_words(text: str, max_word_len: int = 40) -> str:
-    """Breaks up any 'word' with no spaces that's too long for fpdf to render
-    on one line (e.g. long URLs, markdown separators, joined tokens)."""
-    words = text.split(" ")
-    fixed_words = []
-    for word in words:
-        while len(word) > max_word_len:
-            fixed_words.append(word[:max_word_len])
-            word = word[max_word_len:]
-        fixed_words.append(word)
-    return " ".join(fixed_words)
 
 
 def build_inventory_prompt(idea: str, budget: str, categories: str) -> str:
@@ -332,52 +319,6 @@ def chat():
         location=location,
         chat_history=history,
         chat_history_json=json.dumps(history),
-    )
-
-
-@app.route("/export-pdf", methods=["POST"])
-def export_pdf():
-    idea = request.form.get("idea", "Business Plan")
-    raw_plan = request.form.get("raw_plan", "")
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.multi_cell(0, 10, "AI Startup Mentor - Business Plan")
-    pdf.set_font("Helvetica", "I", 11)
-
-    safe_idea = idea.encode("latin-1", "replace").decode("latin-1")
-    safe_idea = wrap_long_words(safe_idea)
-    pdf.multi_cell(0, 8, f"Idea: {safe_idea}")
-    pdf.ln(4)
-
-    pdf.set_font("Helvetica", size=11)
-    for line in raw_plan.split("\n"):
-        clean_line = line.encode("latin-1", "replace").decode("latin-1")
-        clean_line = clean_line.replace("**", "")  # strip markdown bold markers
-        clean_line = wrap_long_words(clean_line)    # prevent "not enough horizontal space" errors
-        if not clean_line.strip():
-            pdf.ln(2)
-            continue
-        if clean_line.strip().startswith("##"):
-            pdf.set_font("Helvetica", "B", 13)
-            pdf.ln(3)
-            pdf.multi_cell(0, 8, clean_line.replace("##", "").strip())
-            pdf.set_font("Helvetica", size=11)
-        else:
-            pdf.multi_cell(0, 7, clean_line)
-
-    pdf_bytes = pdf.output(dest="S")
-    if isinstance(pdf_bytes, str):
-        pdf_bytes = pdf_bytes.encode("latin-1")
-
-    buffer = io.BytesIO(pdf_bytes)
-    buffer.seek(0)
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name="startup-plan.pdf",
-        mimetype="application/pdf",
     )
 
 
