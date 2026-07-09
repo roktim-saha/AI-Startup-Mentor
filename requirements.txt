@@ -1,6 +1,4 @@
 flask
 python-dotenv
 google-generativeai
-fpdf2
-gunicorn
 gunicorn
